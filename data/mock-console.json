@@ -1,0 +1,330 @@
+{
+  "console": {
+    "name": "UDM Pro",
+    "host": "10.0.0.1",
+    "port": 443,
+    "site": "default"
+  },
+  "cameras": [
+    {
+      "id": "64f8c2a91b3e4d001a2b3c4d",
+      "mac": "E43883123456",
+      "host": "10.0.0.40",
+      "name": "Yard East",
+      "type": "UVC G5 PTZ",
+      "marketName": "G5 PTZ",
+      "platform": "sav5444",
+      "state": "CONNECTED",
+      "isPtz": true,
+      "smartDetectSettings": {
+        "objectTypes": ["person", "vehicle"],
+        "autoTrackingObjectTypes": ["person"],
+        "autoTrackingWithZoom": false
+      },
+      "firmwareVersion": "4.74.106",
+      "patrols": [
+        {
+          "id": "65b01c4e8f2a33001c9d0e11",
+          "name": "Night Sweep",
+          "presetDurationSeconds": 18,
+          "presetMovementSpeed": 400,
+          "presets": [
+            {
+              "id": "65b01c4e8f2a33001c9d0e21",
+              "slot": 1,
+              "name": "Dock entrance",
+              "pan": 18420,
+              "tilt": 4120,
+              "zoom": 240,
+              "focus": 88
+            },
+            {
+              "id": "65b01c4e8f2a33001c9d0e22",
+              "slot": 2,
+              "name": "Slip A",
+              "pan": 26110,
+              "tilt": 2880,
+              "zoom": 410,
+              "focus": 92
+            },
+            {
+              "id": "65b01c4e8f2a33001c9d0e23",
+              "slot": 3,
+              "name": "Water line",
+              "pan": 32840,
+              "tilt": 1540,
+              "zoom": 180,
+              "focus": 76
+            },
+            {
+              "id": "65b01c4e8f2a33001c9d0e24",
+              "slot": 4,
+              "name": "Fuel dock",
+              "pan": 40125,
+              "tilt": 3360,
+              "zoom": 320,
+              "focus": 84
+            }
+          ],
+          "slot": 0
+        },
+        {
+          "id": "65b01c4e8f2a33001c9d0e12",
+          "name": "Day Watch",
+          "presetDurationSeconds": 12,
+          "presetMovementSpeed": 600,
+          "presets": [
+            {
+              "id": "65b01c4e8f2a33001c9d0e31",
+              "slot": 1,
+              "name": "Marina office",
+              "pan": 9200,
+              "tilt": 5100,
+              "zoom": 160,
+              "focus": 70
+            },
+            {
+              "id": "65b01c4e8f2a33001c9d0e32",
+              "slot": 2,
+              "name": "Gangway",
+              "pan": 14780,
+              "tilt": 3640,
+              "zoom": 280,
+              "focus": 81
+            },
+            {
+              "id": "65b01c4e8f2a33001c9d0e33",
+              "slot": 3,
+              "name": "Channel marker",
+              "pan": 51240,
+              "tilt": 1980,
+              "zoom": 520,
+              "focus": 95
+            }
+          ],
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "6501e7b42c9a11002d4f8a11",
+      "mac": "F4E2C612AB34",
+      "host": "10.0.0.41",
+      "name": "Parking Lot",
+      "type": "UVC G6 PTZ",
+      "marketName": "G6 PTZ",
+      "platform": "",
+      "state": "CONNECTED",
+      "isPtz": true,
+      "smartDetectSettings": {
+        "objectTypes": ["person", "vehicle"],
+        "autoTrackingObjectTypes": ["person"],
+        "autoTrackingWithZoom": false
+      },
+      "firmwareVersion": "4.74.106",
+      "patrols": [
+        {
+          "id": "65c22d91a01b44002e8f1a01",
+          "name": "Lot Circuit",
+          "presetDurationSeconds": 15,
+          "presetMovementSpeed": 350,
+          "presets": [
+            {
+              "id": "65c22d91a01b44002e8f1a11",
+              "slot": 1,
+              "name": "Entrance",
+              "pan": 6400,
+              "tilt": 2200,
+              "zoom": 120,
+              "focus": 64
+            },
+            {
+              "id": "65c22d91a01b44002e8f1a12",
+              "slot": 2,
+              "name": "Aisles",
+              "pan": 19880,
+              "tilt": 1760,
+              "zoom": 200,
+              "focus": 71
+            },
+            {
+              "id": "65c22d91a01b44002e8f1a13",
+              "slot": 3,
+              "name": "Exit ramp",
+              "pan": 33450,
+              "tilt": 2480,
+              "zoom": 150,
+              "focus": 68
+            }
+          ],
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "651a09c73e8b22003c1d5e22",
+      "mac": "D021F3AA7810",
+      "host": "10.0.0.42",
+      "name": "Front Gate",
+      "type": "UVC G5 PTZ",
+      "marketName": "G5 PTZ",
+      "platform": "sav5444",
+      "state": "DISCONNECTED",
+      "isPtz": true,
+      "smartDetectSettings": {
+        "objectTypes": ["person", "vehicle"],
+        "autoTrackingObjectTypes": ["person"],
+        "autoTrackingWithZoom": false
+      },
+      "firmwareVersion": "4.73.89",
+      "patrols": [
+        {
+          "id": "65d33ea2b12c55003f0a2b01",
+          "name": "Gate Approach",
+          "presetDurationSeconds": 20,
+          "presetMovementSpeed": 500,
+          "presets": [
+            {
+              "id": "65d33ea2b12c55003f0a2b11",
+              "slot": 1,
+              "name": "Approach road",
+              "pan": 11200,
+              "tilt": 2800,
+              "zoom": 90,
+              "focus": 60
+            },
+            {
+              "id": "65d33ea2b12c55003f0a2b12",
+              "slot": 2,
+              "name": "Call box",
+              "pan": 15640,
+              "tilt": 3440,
+              "zoom": 360,
+              "focus": 86
+            }
+          ],
+          "slot": 0
+        },
+        {
+          "id": "65d33ea2b12c55003f0a2b02",
+          "name": "Perimeter",
+          "presetDurationSeconds": 14,
+          "presetMovementSpeed": 450,
+          "presets": [
+            {
+              "id": "65d33ea2b12c55003f0a2b21",
+              "slot": 1,
+              "name": "North fence",
+              "pan": 40200,
+              "tilt": 2100,
+              "zoom": 200,
+              "focus": 74
+            },
+            {
+              "id": "65d33ea2b12c55003f0a2b22",
+              "slot": 2,
+              "name": "East corner",
+              "pan": 47880,
+              "tilt": 1960,
+              "zoom": 260,
+              "focus": 79
+            },
+            {
+              "id": "65d33ea2b12c55003f0a2b23",
+              "slot": 3,
+              "name": "Service road",
+              "pan": 55110,
+              "tilt": 2320,
+              "zoom": 140,
+              "focus": 66
+            }
+          ],
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "652b1ad84f9c33004d2e6f33",
+      "mac": "E43883C0CE10",
+      "host": "10.0.0.43",
+      "name": "Gate West",
+      "type": "UVC AI PTZ Precision",
+      "marketName": "AI PTZ Precision",
+      "platform": "cv25z",
+      "state": "CONNECTED",
+      "isPtz": true,
+      "smartDetectSettings": {
+        "objectTypes": ["person", "vehicle"],
+        "autoTrackingObjectTypes": ["person"],
+        "autoTrackingWithZoom": false
+      },
+      "firmwareVersion": "4.74.106",
+      "patrols": [
+        {
+          "id": "65e44fb3c23d6600401b3c01",
+          "name": "Yard Sweep",
+          "presetDurationSeconds": 16,
+          "presetMovementSpeed": 420,
+          "presets": [
+            {
+              "id": "65e44fb3c23d6600401b3c11",
+              "slot": 1,
+              "name": "Driveway",
+              "pan": 8800,
+              "tilt": 2400,
+              "zoom": 110,
+              "focus": 62
+            },
+            {
+              "id": "65e44fb3c23d6600401b3c12",
+              "slot": 2,
+              "name": "Barn face",
+              "pan": 22100,
+              "tilt": 1980,
+              "zoom": 260,
+              "focus": 78
+            }
+          ],
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "653c2be95ead44005e3f7044",
+      "mac": "F4E2C6A17001",
+      "host": "10.0.0.44",
+      "name": "Shop Door",
+      "type": "UVC AI PTZ Industrial",
+      "marketName": "AI PTZ Industrial",
+      "platform": "",
+      "state": "CONNECTED",
+      "isPtz": true,
+      "smartDetectSettings": {
+        "objectTypes": ["person", "vehicle"],
+        "autoTrackingObjectTypes": ["person"],
+        "autoTrackingWithZoom": false
+      },
+      "firmwareVersion": "4.74.106",
+      "patrols": [
+        {
+          "id": "65f550c4d34e7700512c4d01",
+          "name": "Door Watch",
+          "presetDurationSeconds": 10,
+          "presetMovementSpeed": 380,
+          "presets": [
+            {
+              "id": "65f550c4d34e7700512c4d11",
+              "slot": 1,
+              "name": "Overhead",
+              "pan": 10200,
+              "tilt": 3100,
+              "zoom": 80,
+              "focus": 58
+            }
+          ],
+          "slot": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,357 @@
+/* Desktop: pin left // Nav. Document must not scroll — kit leaves html/body
+   overflow visible, so window-scroll + sticky on .sidebar failed (0.4.11).
+   Lock html/body/layout; only .main is the scrollport. Mobile drawer stays
+   overlay (kit max-width 768px position:fixed). */
+
+@media (min-width: 769px) {
+  html,
+  body {
+    height: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .layout {
+    height: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    align-self: stretch;
+    height: auto;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .main {
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Kit caps .main at 900px, which put the scroll bar mid-window (0.5.0).
+       Let the scrollport fill the window; keep content at the kit width. */
+    max-width: none;
+  }
+
+  .main > .section {
+    max-width: 850px;
+  }
+}
+
+/* PatrolCraft camera tiles — YesTechie Labs Style panels, not Analyzer.
+   Product photos sit on the parent tile panel (no separate photo well).
+   Connected: full-color product PNG. Offline: transparent gray silhouette PNG. */
+
+.camera-tile .camera-tile-inner {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.camera-tile .camera-photo {
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 4px 0;
+  position: relative;
+}
+
+.camera-tile .camera-photo img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+}
+
+.camera-tile .camera-photo img.missing {
+  display: none;
+}
+
+.camera-tile .camera-photo.missing::after {
+  content: "// Ptz";
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.camera-tile .camera-meta {
+  min-width: 0;
+}
+
+.camera-tile .camera-meta .panel-header {
+  margin-bottom: 10px;
+}
+
+/* Selected camera: one shared panel wraps the tile header and its patrol accordion. */
+.camera-group.panel {
+  padding-bottom: 12px;
+}
+
+.camera-group .camera-group-header {
+  cursor: pointer;
+}
+
+.camera-group .camera-accordion {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-main);
+}
+
+.camera-group .camera-accordion > .panel {
+  margin-bottom: 10px;
+}
+
+.camera-group .camera-accordion > .panel:last-child {
+  margin-bottom: 0;
+}
+
+.preset-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 10px;
+  border-bottom: 1px dotted var(--border-main);
+  padding-bottom: 10px;
+}
+
+.preset-refresh-row {
+  margin-bottom: 0;
+  padding-bottom: 16px;
+}
+
+.preset-row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.preset-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(88px, 160px));
+  gap: 8px;
+  width: 100%;
+}
+
+.preset-fields .form-group {
+  margin-bottom: 0;
+}
+
+.preset-ptz {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.preset-ptz .data-value {
+  color: var(--text-dark);
+}
+
+.preset-row.is-capturing .preset-thumb {
+  border-color: var(--accent-blue);
+}
+
+.form-group.is-invalid input {
+  border-color: var(--accent-red);
+  box-shadow: inset 2px 0 0 var(--accent-red);
+}
+
+.field-error {
+  display: none;
+  margin: 4px 0 0;
+  font-size: 9px;
+  color: var(--accent-red);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.form-group.is-invalid .field-error {
+  display: block;
+}
+
+.preset-thumb {
+  cursor: help;
+}
+
+/* Compact Labs (i) next to field names. Hover/focus shows the operator tip. */
+.info-i {
+  display: inline-block;
+  margin: 0 0 0 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 9px;
+  font-weight: normal;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  cursor: help;
+  vertical-align: baseline;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  min-height: 0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.info-i:hover,
+.info-i:focus {
+  color: var(--text-dark);
+  z-index: 40;
+}
+
+.info-i:focus-visible {
+  outline: 1px dotted var(--border-main);
+  outline-offset: 2px;
+}
+
+.info-i:hover::after,
+.info-i:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 40;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 8px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border-main);
+  color: var(--text-dark);
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.form-group label .info-i {
+  margin-left: 4px;
+}
+
+/* Kit sets pointer-events:none on :disabled, which also hides native tooltips. */
+.btn:disabled[title],
+.btn:disabled[data-tip] {
+  pointer-events: auto;
+  cursor: not-allowed;
+}
+
+.toggle {
+  background: transparent;
+  border: 1px solid var(--border-main);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.toggle::before { content: "["; color: var(--border-main); }
+.toggle::after { content: "]"; color: var(--border-main); }
+.toggle:hover { background: var(--panel-bg-hover); }
+.toggle.is-on {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-trans);
+}
+.toggle.is-on::before,
+.toggle.is-on::after { color: var(--accent-blue); }
+
+.preset-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.preset-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 100px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px dashed var(--border-dashed);
+  background: transparent;
+  position: relative;
+}
+
+.preset-thumb img {
+  display: block;
+  width: 160px;
+  height: 100px;
+  object-fit: cover;
+}
+
+.preset-thumb img.missing {
+  display: none;
+}
+
+.preset-thumb.is-empty {
+  background: var(--panel-bg);
+}
+
+.preset-thumb-empty {
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .preset-fields {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .preset-row {
+    grid-template-columns: 1fr;
+  }
+
+  .preset-thumb,
+  .preset-thumb img {
+    width: 160px;
+    height: 100px;
+  }
+
+  .camera-tile .camera-tile-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-tile .camera-photo {
+    min-height: 180px;
+  }
+
+  .camera-tile .camera-photo img {
+    height: 180px;
+  }
+}
