@@ -57,6 +57,114 @@ die()  { printf '\n%sERROR%s %s\n' "$R" "$O" "$*" >&2; exit 1; }
 cleanup() { [ -n "$TMP_DIR" ] && rm -rf "$TMP_DIR"; return 0; }
 trap cleanup EXIT
 
+is_utf8() {  # effective charset: locale charmap, else LC_ALL / LC_CTYPE / LANG
+    local cm=""
+    cm="$(locale charmap 2>/dev/null)" || cm=""
+    if [ -z "$cm" ]; then cm="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"; fi
+    case "$cm" in *UTF-8*|*utf-8*|*UTF8*|*utf8*) return 0 ;; esac
+    return 1
+}
+
+
+# Installer banner (Vera, 2026-11-02). Braille mark when the session is UTF-8 and TERM is not
+# "linux"; otherwise the console-safe banner. {VERSION} is the version being installed.
+IFS= read -r -d '' BANNER_BRAILLE <<'BANNER' || true
+┏━━
+
+                        ⠿⠿⠿⣿⣿⠿⠿⠿
+                       ⣀⣀⣀⣀⣿⣿⣀⣀⣀⣀
+                      ⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇
+                      ⠘⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠃
+               ⢀⣦⣄    ⢸⣿⣿⡿ ⣤⣤ ⢻⣿⣿⡇    ⣠⣴⡀
+               ⢸⡿⢿⡁    ⢻⣿⣇⠈⠿⠿⠁⣸⣿⡟    ⢈⡿⢿⡇
+                  ⠻⣄    ⠙⠻⠷⣦⣴⠾⠟⠋    ⣠⠟⠁
+                   ⠈⠛⢦⣄⡀        ⢀⣠⡴⠟⠁
+                      ⠈⠙⠓⠶⠶⠶⠶⠶⠶⠚⠋⠁
+
+      ░█▀█░█▀█░▀█▀░█▀▄░█▀█░█░░░█▀▀░█▀▄░█▀█░█▀▀░▀█▀
+      ░█▀▀░█▀█░░█░░█▀▄░█░█░█░░░█░░░█▀▄░█▀█░█▀▀░░█░
+      ░▀░░░▀░▀░░▀░░▀░▀░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀░░░░▀░
+
+                     // YESTECHIE LABS
+            PTZ Patrol Editor for UniFi Protect
+
+        VERSION  {VERSION}    SOURCE  labs.yestechie.com
+
+                                                         ━━┛
+BANNER
+IFS= read -r -d '' BANNER_CONSOLE <<'BANNER' || true
+┌──
+
+                       ██████████
+                           ██
+                     ██████████████
+                     ██████████████
+
+                     ████  ██  ████
+            ███       ███  ██  ███       ███
+            ████        ████████        ████
+               ███                    ███
+                  ████            ████
+                      ████████████
+
+      ░███░███░███░██ ░███░█  ░███░██ ░███░███░███
+      ░█ █░█ █░ █ ░█ █░█ █░█  ░█  ░█ █░█ █░█  ░ █ 
+      ░███░███░░█░░██ ░█░█░█░░░█░░░██ ░███░██░░░█░
+      ░█  ░█ █░░█░░█ █░█░█░█  ░█  ░█ █░█ █░█  ░░█░
+      ░█░░░█░█░░█░░█░█░███░███░███░█░█░█░█░█░░░░█░
+
+                     // YESTECHIE LABS
+            PTZ Patrol Editor for UniFi Protect
+
+        VERSION  {VERSION}    SOURCE  labs.yestechie.com
+
+                                                         ──┘
+BANNER
+
+banner() {
+    local ver="${1:--}" art line pre rest sp1 val sp2 sp3
+    local cb="" cy="" cl="" cm="" cg="" co=""
+    # Labs tokens: blue #6388b0, yellow #c69c5e, muted #8c949e, green #7a9f82. Name and URL use bold
+    # default text color so they read on light and dark terminals.
+    # Off when stdout is not a terminal or NO_COLOR is set (no-color.org). 24-bit when the
+    # terminal says so (COLORTERM), else the nearest 256-color index.
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        case "${COLORTERM:-}" in
+            truecolor|24bit)
+                cb=$'\033[38;2;99;136;176m'; cy=$'\033[38;2;198;156;94m'; cl=$'\033[1m'
+                cm=$'\033[38;2;140;148;158m'; cg=$'\033[38;2;122;159;130m' ;;
+            *)
+                cb=$'\033[38;5;67m'; cy=$'\033[38;5;179m'; cl=$'\033[1m'
+                cm=$'\033[38;5;246m'; cg=$'\033[38;5;108m' ;;
+        esac
+        co=$'\033[0m'
+    fi
+    if is_utf8 && [ "${TERM:-}" != linux ]; then art="$BANNER_BRAILLE"; else art="$BANNER_CONSOLE"; fi
+    art="${art%$'\n'}"
+    while IFS= read -r line; do
+        if [ -z "$line" ]; then
+            printf '\n'
+        elif [[ "$line" == *"{VERSION}"* ]]; then
+            line="${line//\{VERSION\}/$ver}"
+            pre="${line%%VERSION*}"; rest="${line#*VERSION}"
+            sp1="${rest%%[! ]*}"; rest="${rest#"$sp1"}"
+            val="${rest%% *}"; rest="${rest#"$val"}"
+            sp2="${rest%%[! ]*}"; rest="${rest#"$sp2"}"; rest="${rest#SOURCE}"
+            sp3="${rest%%[! ]*}"; rest="${rest#"$sp3"}"
+            printf '%s%sVERSION%s%s%s%s%s%s%sSOURCE%s%s%s%s%s\n' "$pre" "$cm" "$co" "$sp1" "$cg" "$val" "$co" \
+                "$sp2" "$cm" "$co" "$sp3" "$cl" "$rest" "$co"
+        elif [[ "$line" == *"// "* ]]; then
+            pre="${line%%//*}"; rest="${line#*//}"
+            printf '%s%s//%s%s%s%s\n' "$pre" "$cy" "$co" "$cl" "$rest" "$co"
+        elif [[ "$line" == *"PTZ Patrol Editor"* ]]; then
+            printf '%s%s%s\n' "$cm" "$line" "$co"
+        else
+            printf '%s%s%s\n' "$cb" "$line" "$co"
+        fi
+    done <<< "$art"
+    printf '\n'
+}
+
 ask() {  # ask "prompt" -> reply on stdout; reads the terminal even when piped
     local reply=""
     if [ -r /dev/tty ] && { : </dev/tty; } 2>/dev/null; then
@@ -123,7 +231,13 @@ port_busy() {
 
 # ---------------------------------------------------------------- download
 resolve_version() {
-    if [ -n "${PC_LOCAL_TARBALL:-}" ]; then return; fi
+    if [ -n "${PC_LOCAL_TARBALL:-}" ]; then
+        local member
+        member="$(tar -tzf "$PC_LOCAL_TARBALL" 2>/dev/null | awk -F/ 'NF==2 && $2=="VERSION"{print; exit}')" || member=""
+        VERSION=""
+        if [ -n "$member" ]; then VERSION="$(tar -xzOf "$PC_LOCAL_TARBALL" "$member" | tr -d '[:space:]')"; fi
+        return
+    fi
     if [ -n "${PC_VERSION:-}" ]; then
         VERSION="$PC_VERSION"
     else
@@ -293,11 +407,14 @@ finish() {
 do_install() {
     check_system
     check_existing_service
-    printf '\n%sPatrolCraft installer%s\n\n%s\n\n' "$B" "$O" "$TERMS_NOTICE"
-    if [ ! -d "$APP_DIR" ] && [ "$PC_YES" != "1" ]; then
-        case "$(ask 'Continue? [y/N] ')" in y|Y|yes|YES) ;; *) die "Cancelled. Nothing was changed." ;; esac
-    fi
     resolve_version
+    banner "${VERSION:--}"
+    if [ ! -d "$APP_DIR" ]; then
+        printf '%s\n\n' "$TERMS_NOTICE"
+        if [ "$PC_YES" != "1" ]; then
+            case "$(ask 'Continue? [y/N] ')" in y|Y|yes|YES) ;; *) die "Cancelled. Nothing was changed." ;; esac
+        fi
+    fi
     download_release
     if [ -d "$APP_DIR" ]; then stop_service; fi
     install_files
