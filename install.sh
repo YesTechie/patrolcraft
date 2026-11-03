@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# PatrolCraft installer for macOS (UniFi Protect PTZ patrol editor).
+# PatrolCraft installer for macOS, Linux and Raspberry Pi (UniFi Protect PTZ patrol editor).
 #
 #   Install or upgrade:  curl -fsSL https://labs.yestechie.com/install/patrolcraft.sh | bash
 #   Uninstall:           curl -fsSL https://labs.yestechie.com/install/patrolcraft.sh | bash -s -- --uninstall
 #
-# Run as your normal macOS user. No sudo is needed. Re-running upgrades in place and keeps
+# Run as your normal user. No sudo is needed. Re-running upgrades in place and keeps
 # your login, console settings and saved patrol points.
+#
+# macOS: runs as a LaunchAgent and only this Mac can open it (127.0.0.1).
+# Linux / Raspberry Pi: runs as a systemd user service and other computers on your network
+# can open it, behind the PatrolCraft login (set PC_BIND=127.0.0.1 to keep it local).
 #
 # Environment overrides (put them before bash, e.g. curl ... | PC_PORT=8090 bash):
 #   PC_BASE_URL      where releases live (default https://labs.yestechie.com/install)
 #   PC_VERSION       install this version instead of the one named in "latest"
 #   PC_PORT          local port (default 8080)
-#   PC_HOME          install folder (default ~/Library/Application Support/PatrolCraft)
-#   PC_LABEL         LaunchAgent label (default com.yestechie.patrolcraft)
+#   PC_HOME          install folder (macOS default ~/Library/Application Support/PatrolCraft,
+#                    Linux default ~/.local/share/patrolcraft)
+#   PC_LABEL         service name (default com.yestechie.patrolcraft)
+#   PC_BIND          listen address (macOS default 127.0.0.1, Linux default 0.0.0.0)
 #   PC_RECONFIGURE=1 make a new PatrolCraft password on upgrade
 #   PC_LOCAL_TARBALL install from a local release archive (testing only)
-#   PC_NO_SERVICE=1  install files only, don't load the LaunchAgent (testing only)
-#   PC_FORCE=1       skip the macOS check (testing only)
+#   PC_NO_SERVICE=1  install files only, don't start the service (testing only)
+#   PC_FORCE=1       skip the system check (testing only)
 #   PC_YES=1         accept the terms without asking (unattended installs)
 set -euo pipefail
 
@@ -28,8 +34,16 @@ By installing, you agree to the YesTechie Labs terms:
 labs.yestechie.com/terms.html'
 
 PC_BASE_URL="${PC_BASE_URL:-https://labs.yestechie.com/install}"; PC_BASE_URL="${PC_BASE_URL%/}"
+OS="$(uname -s)"
+case "$OS" in Darwin) IS_MAC=1 ;; *) IS_MAC=0 ;; esac
 PC_PORT="${PC_PORT:-8080}"
-PC_HOME="${PC_HOME:-$HOME/Library/Application Support/PatrolCraft}"
+if [ "$IS_MAC" = "1" ]; then
+    PC_HOME="${PC_HOME:-$HOME/Library/Application Support/PatrolCraft}"
+    PC_BIND="${PC_BIND:-127.0.0.1}"
+else
+    PC_HOME="${PC_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/patrolcraft}"
+    PC_BIND="${PC_BIND:-0.0.0.0}"
+fi
 PC_LABEL="${PC_LABEL:-com.yestechie.patrolcraft}"
 PC_RECONFIGURE="${PC_RECONFIGURE:-0}"
 PC_NO_SERVICE="${PC_NO_SERVICE:-0}"
@@ -39,7 +53,11 @@ PC_YES="${PC_YES:-0}"
 APP_DIR="$PC_HOME/app"
 VENV_DIR="$PC_HOME/venv"
 LOG_DIR="$PC_HOME/logs"
-PLIST="$HOME/Library/LaunchAgents/$PC_LABEL.plist"
+if [ "$IS_MAC" = "1" ]; then
+    PLIST="$HOME/Library/LaunchAgents/$PC_LABEL.plist"
+else
+    PLIST="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$PC_LABEL.service"
+fi
 MARKER=".patrolcraft-installer"
 # Files the app writes at runtime; carried over on upgrade.
 KEEP=(.env config.local.yaml data/patrol-points data/preset-thumbs)
@@ -191,28 +209,51 @@ for arg in "$@"; do
 done
 
 # ---------------------------------------------------------------- checks
+check_ssh_version() {  # Apply passes the camera code with SSH_ASKPASS_REQUIRE, added in OpenSSH 8.4.
+    local v maj min
+    v="$(ssh -V 2>&1 | sed -n 's/.*OpenSSH_\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2/p' | head -n 1)"
+    if [ -z "$v" ]; then warn "Could not read the ssh version. Per-preset settings need OpenSSH 8.4 or newer."; return 0; fi
+    read -r maj min <<<"$v"
+    if [ "$maj" -lt 8 ] || { [ "$maj" -eq 8 ] && [ "$min" -lt 4 ]; }; then
+        [ "$PC_FORCE" = "1" ] && { warn "OpenSSH $maj.$min is older than 8.4; per-preset settings won't reach the camera."; return 0; }
+        die "PatrolCraft needs OpenSSH 8.4 or newer to send per-preset settings to the camera (found $maj.$min).
+       Update the system (Raspberry Pi OS Bookworm, Ubuntu 22.04, Debian 11 or newer, macOS 12 or newer) and run this installer again."
+    fi
+}
+
 check_system() {
-    if [ "$(uname -s)" != "Darwin" ] && [ "$PC_FORCE" != "1" ]; then
-        die "This installer is for macOS."
+    if [ "$OS" != "Darwin" ] && [ "$OS" != "Linux" ] && [ "$PC_FORCE" != "1" ]; then
+        die "This installer is for macOS, Linux and Raspberry Pi (found $OS)."
     fi
     [ "$(id -u)" != "0" ] || die "Run this as your normal user, not with sudo."
     [[ "$PC_PORT" =~ ^[0-9]+$ ]] && [ "$PC_PORT" -ge 1024 ] && [ "$PC_PORT" -le 65535 ] \
         || die "PC_PORT must be a number from 1024 to 65535."
     [[ "$PC_LABEL" =~ ^[A-Za-z0-9.-]+$ ]] || die "PC_LABEL may only use letters, digits, dots and dashes."
+    [[ "$PC_BIND" =~ ^[0-9A-Fa-f.:]+$ ]] || die "PC_BIND must be an IP address, for example 127.0.0.1 or 0.0.0.0."
     command -v curl >/dev/null || die "curl is missing."
     command -v ssh >/dev/null || die "ssh is missing. PatrolCraft uses it to send per-preset settings to the camera."
-    if [ "$(uname -s)" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
+    check_ssh_version
+    if [ "$IS_MAC" = "1" ] && ! xcode-select -p >/dev/null 2>&1; then
         die "Python 3 needs Apple's Command Line Tools. Run: xcode-select --install   then run this installer again."
     fi
     command -v python3 >/dev/null || die "python3 is missing."
     python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' \
         || die "PatrolCraft needs Python 3.9 or newer (found $(python3 -V 2>&1))."
+    if [ "$IS_MAC" != "1" ]; then
+        python3 -c 'import venv, ensurepip' >/dev/null 2>&1 \
+            || die "Python's venv module is missing. On Raspberry Pi OS, Debian or Ubuntu run:  sudo apt install -y python3-venv   then run this installer again."
+        if [ "$PC_NO_SERVICE" != "1" ]; then
+            command -v systemctl >/dev/null || die "systemd is missing. PatrolCraft uses it to keep running in the background."
+            systemctl --user show-environment >/dev/null 2>&1 \
+                || die "Can't reach your systemd user session. Sign in to this computer as $(id -un) (SSH is fine) and run the installer from that session."
+        fi
+    fi
 }
 
 check_existing_service() {
     # Never take over a PatrolCraft that this installer didn't set up.
     if [ -f "$PLIST" ] && ! grep -q "$MARKER" "$PLIST" 2>/dev/null; then
-        die "A LaunchAgent named $PC_LABEL already exists and was not made by this installer.
+        die "A service named $PC_LABEL already exists and was not made by this installer.
        Pick another name and folder, for example:
        curl -fsSL $PC_BASE_URL/patrolcraft.sh | PC_LABEL=com.yestechie.patrolcraft2 PC_HOME=\"\$HOME/PatrolCraft2\" PC_PORT=8090 bash"
     fi
@@ -325,7 +366,7 @@ write_env() {
         cp "$APP_DIR/.env.example" "$env"; chmod 600 "$env"
     fi
     chmod 600 "$env"
-    env_set "$env" APP_HOST 127.0.0.1
+    env_set "$env" APP_HOST "$PC_BIND"
     env_set "$env" APP_PORT "$PC_PORT"
     if [ -z "$(env_get "$env" APP_SECRET)" ]; then env_set "$env" APP_SECRET "$(random_token 48)"; fi
     if [ -z "$(env_get "$env" APP_USER)" ]; then env_set "$env" APP_USER admin; fi
@@ -353,7 +394,7 @@ write_plist() {
   <key>ProgramArguments</key>
   <array>
     <string>$py</string><string>-m</string><string>uvicorn</string><string>app.main:app</string>
-    <string>--host</string><string>127.0.0.1</string><string>--port</string><string>$PC_PORT</string>
+    <string>--host</string><string>$PC_BIND</string><string>--port</string><string>$PC_PORT</string>
   </array>
   <key>WorkingDirectory</key><string>$app</string>
   <key>RunAtLoad</key><true/>
@@ -366,9 +407,58 @@ PL
     chmod 644 "$PLIST"
 }
 
+write_unit() {
+    mkdir -p "$(dirname "$PLIST")"
+    # systemd unit: quote paths for ExecStart, escape % (specifier char).
+    local py app logs
+    py="$(printf '%s' "$VENV_DIR/bin/python" | sed -e 's/%/%%/g' -e 's/"/\\"/g')"
+    app="$(printf '%s' "$APP_DIR" | sed -e 's/%/%%/g')"
+    logs="$(printf '%s' "$LOG_DIR/patrolcraft.log" | sed -e 's/%/%%/g')"
+    cat >"$PLIST" <<UNIT
+# $MARKER
+[Unit]
+Description=PatrolCraft (UniFi Protect PTZ patrol editor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$app
+ExecStart="$py" -m uvicorn app.main:app --host $PC_BIND --port $PC_PORT
+Restart=always
+RestartSec=3
+StandardOutput=append:$logs
+StandardError=append:$logs
+
+[Install]
+WantedBy=default.target
+UNIT
+    chmod 644 "$PLIST"
+}
+
 stop_service() {
-    [ "$(uname -s)" = "Darwin" ] || return 0
-    launchctl bootout "gui/$(id -u)/$PC_LABEL" >/dev/null 2>&1 || true
+    if [ "$IS_MAC" = "1" ]; then
+        launchctl bootout "gui/$(id -u)/$PC_LABEL" >/dev/null 2>&1 || true
+    elif command -v systemctl >/dev/null; then
+        systemctl --user stop "$PC_LABEL.service" >/dev/null 2>&1 || true
+    fi
+}
+
+load_service() {
+    if [ "$IS_MAC" = "1" ]; then
+        write_plist
+        launchctl bootstrap "gui/$(id -u)" "$PLIST" || die "launchctl could not load $PLIST"
+    else
+        write_unit
+        systemctl --user daemon-reload || die "systemd could not reload its user services."
+        systemctl --user enable "$PC_LABEL.service" >/dev/null 2>&1 || die "systemd could not enable $PC_LABEL.service"
+        systemctl --user restart "$PC_LABEL.service" || die "systemd could not start $PC_LABEL.service. See: journalctl --user -u $PC_LABEL"
+        # Keep running after you sign out and start at boot without a sign-in.
+        if [ "$(loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null)" != "yes" ]; then
+            loginctl enable-linger "$(id -un)" >/dev/null 2>&1 \
+                || warn "PatrolCraft stops when you sign out. To keep it running and start it at boot, run:  sudo loginctl enable-linger $(id -un)"
+        fi
+    fi
 }
 
 start_service() {
@@ -377,18 +467,30 @@ start_service() {
     stop_service
     sleep 1
     if port_busy; then die "Port $PC_PORT is already in use. Run again with another port, e.g.  curl ... | PC_PORT=8090 bash"; fi
-    write_plist
-    launchctl bootstrap "gui/$(id -u)" "$PLIST" || die "launchctl could not load $PLIST"
+    load_service
 
     for _ in $(seq 1 30); do
-        if curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:$PC_PORT/api/version"; then info "Running."; return; fi
+        if curl -fs -o /dev/null --max-time 2 "http://$(local_host)/api/version"; then info "Running."; return; fi
         sleep 1
     done
     die "PatrolCraft did not start. See $LOG_DIR/patrolcraft.log"
 }
 
+local_host() {  # address this computer uses to reach the app
+    case "$PC_BIND" in 0.0.0.0|::|127.0.0.1) printf '127.0.0.1:%s' "$PC_PORT" ;; *:*) printf '[%s]:%s' "$PC_BIND" "$PC_PORT" ;; *) printf '%s:%s' "$PC_BIND" "$PC_PORT" ;; esac
+}
+
+lan_ip() {  # first LAN IPv4 of this computer, empty if unknown
+    local ip=""
+    if command -v hostname >/dev/null; then ip="$(hostname -I 2>/dev/null | awk '{print $1}')" || ip=""; fi
+    if [ -z "$ip" ] && command -v ip >/dev/null; then
+        ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')" || ip=""
+    fi
+    printf '%s' "$ip"
+}
+
 finish() {
-    local url="http://127.0.0.1:$PC_PORT/"
+    local url; url="http://$(local_host)/"
     printf '\n%sPatrolCraft %s is installed.%s\n\n' "$G" "$VERSION" "$O"
     info "Open:      $url"
     info "Username:  $(env_get "$APP_DIR/.env" APP_USER)"
@@ -400,8 +502,17 @@ finish() {
     fi
     info ""
     info "Then open Config and connect your UniFi console. PatrolCraft runs in demo mode until you do."
-    info "Only this Mac can open PatrolCraft. It starts again on its own after a restart."
-    if [ "$PC_NO_SERVICE" != "1" ] && [ "$(uname -s)" = "Darwin" ] && [ -z "${SSH_CONNECTION:-}" ]; then open "$url" >/dev/null 2>&1 || true; fi
+    if [ "$IS_MAC" = "1" ] && [ "$PC_BIND" = "127.0.0.1" ]; then
+        info "Only this Mac can open PatrolCraft. It starts again on its own after a restart."
+    elif [ "$PC_BIND" = "127.0.0.1" ]; then
+        info "Only this computer can open PatrolCraft. It starts again on its own after a restart."
+    else
+        local ip; ip="$(lan_ip)"
+        if [ "$PC_BIND" = "0.0.0.0" ] && [ -n "$ip" ]; then info "From another computer on your network:  http://$ip:$PC_PORT/"; fi
+        info "Other computers on your network can open PatrolCraft; it asks for the login above."
+        info "It starts again on its own after a restart. To keep it local only: curl ... | PC_BIND=127.0.0.1 bash"
+    fi
+    if [ "$PC_NO_SERVICE" != "1" ] && [ "$IS_MAC" = "1" ] && [ -z "${SSH_CONNECTION:-}" ]; then open "$url" >/dev/null 2>&1 || true; fi
 }
 
 do_install() {
@@ -433,7 +544,11 @@ do_uninstall() {
     fi
     step "Removing PatrolCraft"
     stop_service
+    if [ "$IS_MAC" != "1" ] && command -v systemctl >/dev/null; then
+        systemctl --user disable "$PC_LABEL.service" >/dev/null 2>&1 || true
+    fi
     rm -f "$PLIST"
+    if [ "$IS_MAC" != "1" ] && command -v systemctl >/dev/null; then systemctl --user daemon-reload >/dev/null 2>&1 || true; fi
     [ -f "$PC_HOME/$MARKER" ] && rm -rf "$PC_HOME"
     info "Removed. Your UniFi console and cameras were not changed."
 }
