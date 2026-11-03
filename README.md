@@ -4,6 +4,8 @@ Edit your UniFi Protect PTZ patrols from one page. Set the dwell time and the mo
 
 PatrolCraft runs on a Mac on your network and talks to your UniFi console.
 
+**Community:** questions, ideas and release updates live in [r/YesTechie_Labs](https://www.reddit.com/r/YesTechie_Labs/).
+
 ## Features
 
 - **Per-preset dwell and speed.** Set how long the camera stays at each preset and how fast it moves there.
